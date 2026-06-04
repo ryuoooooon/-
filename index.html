@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Slime Legion</title>
+
+<style>
+body{
+    margin:0;
+    background:#222;
+    color:white;
+    font-family:sans-serif;
+    text-align:center;
+}
+
+#top{
+    padding:10px;
+    background:#333;
+}
+
+button{
+    padding:10px 20px;
+    font-size:18px;
+}
+
+#board{
+    width:360px;
+    margin:15px auto;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:5px;
+}
+
+.cell{
+    width:110px;
+    height:110px;
+    background:#444;
+    border-radius:10px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:24px;
+    position:relative;
+}
+
+.slime{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    background:limegreen;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+#battle{
+    width:360px;
+    margin:auto;
+}
+
+.bar{
+    height:20px;
+    background:red;
+    border-radius:10px;
+}
+
+#enemyArea{
+    margin-top:20px;
+}
+
+#log{
+    width:360px;
+    height:120px;
+    margin:10px auto;
+    background:#111;
+    overflow-y:auto;
+    text-align:left;
+    padding:5px;
+    font-size:14px;
+}
+</style>
+</head>
+<body>
+
+<div id="top">
+    コイン: <span id="coins">50</span>
+    |
+    Wave: <span id="wave">1</span>
+    <br><br>
+    <button onclick="summon()">召喚(10)</button>
+</div>
+
+<div id="board"></div>
+
+<div id="battle">
+    <div id="enemyArea">
+        <h3>敵</h3>
+        HP:
+        <div style="background:#555;border-radius:10px">
+            <div id="enemyHpBar" class="bar"></div>
+        </div>
+        <p id="enemyText"></p>
+    </div>
+</div>
+
+<div id="log"></div>
+
+<script>
+
+const boardSize=9;
+
+let coins=50;
+let wave=1;
+
+let enemy={
+    hp:100,
+    maxHp:100
+};
+
+let cells=new Array(boardSize).fill(null);
+
+let selected=null;
+
+function log(msg){
+    const box=document.getElementById("log");
+    box.innerHTML+=msg+"<br>";
+    box.scrollTop=box.scrollHeight;
+}
+
+function updateUI(){
+
+    document.getElementById("coins").textContent=coins;
+    document.getElementById("wave").textContent=wave;
+
+    const board=document.getElementById("board");
+    board.innerHTML="";
+
+    cells.forEach((slime,index)=>{
+
+        const cell=document.createElement("div");
+        cell.className="cell";
+
+        if(slime){
+
+            const div=document.createElement("div");
+            div.className="slime";
+
+            div.textContent="Lv"+slime.level;
+
+            div.onclick=()=>clickSlime(index);
+
+            let size=70+slime.level*3;
+
+            div.style.width=size+"px";
+            div.style.height=size+"px";
+
+            cell.appendChild(div);
+        }
+
+        board.appendChild(cell);
+    });
+
+    let percent=
+    enemy.hp/enemy.maxHp*100;
+
+    document.getElementById("enemyHpBar")
+    .style.width=percent+"%";
+
+    document.getElementById("enemyText")
+    .textContent=
+    enemy.hp+" / "+enemy.maxHp;
+}
+
+function summon(){
+
+    if(coins<10)return;
+
+    let empty=[];
+
+    cells.forEach((c,i)=>{
+        if(c===null) empty.push(i);
+    });
+
+    if(empty.length===0)return;
+
+    coins-=10;
+
+    let pos=
+    empty[Math.floor(Math.random()*empty.length)];
+
+    cells[pos]={
+        level:1
+    };
+
+    updateUI();
+}
+
+function clickSlime(index){
+
+    if(selected===null){
+
+        selected=index;
+        return;
+    }
+
+    if(selected===index){
+
+        selected=null;
+        return;
+    }
+
+    let a=cells[selected];
+    let b=cells[index];
+
+    if(a && b && a.level===b.level){
+
+        cells[index]={
+            level:a.level+1
+        };
+
+        cells[selected]=null;
+
+        log("Lv"+a.level+" → Lv"+(a.level+1));
+
+    }else{
+
+        [cells[selected],cells[index]]
+        =
+        [cells[index],cells[selected]];
+    }
+
+    selected=null;
+
+    updateUI();
+}
+
+function totalPower(){
+
+    let p=0;
+
+    cells.forEach(s=>{
+
+        if(s){
+            p+=s.level*5;
+        }
+    });
+
+    return p;
+}
+
+function battleTick(){
+
+    let dmg=totalPower();
+
+    enemy.hp-=dmg;
+
+    if(dmg>0){
+        log("敵に "+dmg+" ダメージ");
+    }
+
+    if(enemy.hp<=0){
+
+        log("Wave "+wave+" クリア");
+
+        coins+=20+wave*5;
+
+        wave++;
+
+        enemy.maxHp=
+        Math.floor(enemy.maxHp*1.4);
+
+        enemy.hp=
+        enemy.maxHp;
+    }
+
+    updateUI();
+}
+
+setInterval(battleTick,1000);
+
+updateUI();
+
+</script>
+</body>
+</html>ひ
